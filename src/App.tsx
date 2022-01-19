@@ -1,106 +1,82 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './App.scss';
-import { Oval } from 'react-loader-spinner';
-import { MultiValue } from 'react-select';
-import { getMoreCharacters } from './api/api';
-import { Card, ReactSelectOption } from './components/types';
-import { CharacterList } from './components/CharacterCardList/CharacterCardList';
-import { CharacterStats } from './components/CharacterStats/CharacterStats';
-import { CharacterFilters } from './components/CharacterFilters/CharacterFilters';
+import { getData } from './api/api';
+import { CurrencyRow } from './components/CurrencyRow/CurrencyRow';
 
 export const App: React.FC = () => {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [characters, setCharacters] = useState<Card[] | []>([]);
-  const [pageNumber, setPageNumber] = useState<number>(1);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [selectedFilters, setSelectedFilters] = useState<MultiValue<ReactSelectOption<string>>>([]);
+  const [currencyOptions, setCurrencyOptions] = useState<string[]>([]);
+  const [fromCurrency, setFromCurrency] = useState<string>('');
+  const [toCurrency, setToCurrency] = useState<string>('');
+  const [exchangeRate, setExchangeRate] = useState<number>(0);
+  const [toAmount, setToAmount] = useState<number>(0);
+  const [fromAmount, setFromAmount] = useState<number>(0);
 
-  useEffect(() => {
-    setIsLoading(true);
-    getMoreCharacters(pageNumber)
-      .then(data => setCharacters(data.results));
-    setIsLoading(false);
-  }, []);
-
-  const loadMore = () => {
-    setIsLoading(true);
-    setPageNumber(currentPageNumber => {
-      const newPageNumber = currentPageNumber + 1;
-
-      getMoreCharacters(newPageNumber)
-        .then(data => {
-          setCharacters(prevData => [...prevData, ...data.results]);
-          setIsLoading(false);
-        });
-
-      return newPageNumber;
-    }), [pageNumber];
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log(event.target.value)
+    if (event.target.id === 'from') {
+      setFromAmount(+event.target.value);
+    } else {
+      setToAmount(+event.target.value);
+    }
   };
 
-  const preparedCharacters = useMemo(() => {
-    if (!selectedFilters.length) {
-      return characters;
-    }
+  const fetchData = async () => {
+    try {
+      const currency = await getData('latest', 'format=1');
 
-    const preparedFilters = selectedFilters.map(filter => filter.value);
+      const firstCurrency = Object.keys(currency.rates)[0];
 
-    const filterBySpecies = characters.filter(
-      character => preparedFilters.some(element => element.includes(character.species)),
-    );
+      setCurrencyOptions([...Object.keys(currency.rates)]);
+      setFromCurrency(currency.base);
+      setToCurrency(firstCurrency);
+      setExchangeRate(+currency.rates[firstCurrency]);
+    } catch (error) {
+      console.warn('Error has occurred when fetching latest rates.');
+    };
+  }
 
-    return filterBySpecies;
-  }, [selectedFilters, characters]);
+  useEffect(() => {
+    fetchData()
+  }, []);
 
-  const species = [
-    'Human', 'Alien', 'Humanoid',
-    'Poopybutthole', 'Mythological', 'Unknown',
-    'Animal', 'Disease', 'Robot', 'Cronenberg', 'Planet',
-  ];
+  const changeConvertFrom = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setFromCurrency(event.target.value);
+  };
+
+  const changeConvertTo = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setToCurrency(event.target.value);
+  };
+
+  useEffect(() => {
+    console.log(fromAmount, exchangeRate)
+    setFromAmount(toAmount ? toAmount / exchangeRate : 0);
+  }, [toAmount]);
+
+  useEffect(() => {
+    console.log(toAmount, exchangeRate)
+    setToAmount(fromAmount * exchangeRate);
+  }, [fromAmount]);
+
 
   return (
     <div className="App__wrapper">
-      <div className="App__CharacterFilters">
-        <CharacterFilters
-          selectedFilters={selectedFilters}
-          setSelectedFilters={setSelectedFilters}
-          className="App__filters"
-          filter={species}
-        />
-      </div>
-
-      {!isLoading && !preparedCharacters.length
-      && <h2 className="App__noCharacters">Have not characters</h2>}
-
-      <CharacterList
-        setSelectedId={setSelectedId}
-        characterCards={preparedCharacters}
+      <CurrencyRow
+        currencyOptions={currencyOptions}
+        selectedCurrency={fromCurrency}
+        onChangeCurrency={changeConvertFrom}
+        amount={fromAmount}
+        onChangeAmount={handleInputChange}
+        id={'from'}
       />
-
-      {isLoading && !characters.length && (
-        <div className="App__loader">
-          <Oval
-            color="#000"
-            height={150}
-            width={150}
-          />
-        </div>
-      )}
-
-      {selectedId && (
-        <CharacterStats
-          selectedId={selectedId}
-          closeStats={() => setSelectedId(null)}
-        />
-      )}
-
-      <button
-        className="App__button"
-        type="button"
-        onClick={loadMore}
-        disabled={isLoading}
-      >
-        Load more
-      </button>
+      <div className="App__title">Convert</div>
+      <CurrencyRow
+        currencyOptions={currencyOptions}
+        selectedCurrency={toCurrency}
+        onChangeCurrency={changeConvertTo}
+        amount={toAmount}
+        onChangeAmount={handleInputChange}
+        id={'to'}
+      />
     </div>
   );
 };

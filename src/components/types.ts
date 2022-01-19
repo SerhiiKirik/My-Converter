@@ -1,31 +1,6 @@
-export interface Card {
-  id: number;
-  name: string;
-  image: string;
-  gender: string;
-  status: string;
-  species: string;
-  origin: {
-    name: string;
+export interface Rate {
+  base: string;
+  rates: {
+    [key: string]: number;
   };
-  episode: string[];
-}
-
-export interface CharacterCards {
-  results: Card[];
-}
-
-export interface LastEpisode {
-  name: string | undefined;
-}
-
-export interface ReactSelectOption<T> {
-  value: T;
-  label: string;
-}
-
-export interface Filters {
-  firstSelect: string;
-  secondSelect: string;
-  thirdSelect: string;
 }
