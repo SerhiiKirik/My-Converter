@@ -1,6 +1,6 @@
 # One page Converter
 - Click on the link to see the currency converterin action.
-- [DEMO LINK](https://serhiikirik.github.io/my-converter/)
+- [DEMO LINK](https://serhiikirik.github.io/My-Converter/)
 
 ## Description
 - Technology that was used: React, Redux, React Hooks, React Select, TypeScript, HTML5, BEM, SCSS;
